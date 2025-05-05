@@ -1,0 +1,36 @@
+private String performPreAuth(String token, TExchangeUser user, String domainName) throws Exception {
+    int maxRetries = 3;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        log.info("第 {} 次执行预授权，loginName={}", attempt, user.getLoginName());
+
+        PreAuthReq req = buildPreAuthRequest(user, domainName);
+        Map<String, String> headers = buildPreAuthHeaders(token);
+        String jsonBody = JsonUtils.object2Json(req.getData());
+        String requestUrl = apiUrl + OAUTH_PREAUTH_PATH;
+
+        log.info("MiniService preauth, url={}, json={}, headers={}", requestUrl, jsonBody, headers);
+
+        String response = HttpUtil.doPostJson(requestUrl, jsonBody, headers);
+        log.info("MiniService preauth, response={}", response);
+
+        // 解析 JSON 内容
+        JsonNode rootNode = JsonUtils.toJsonNode(response); // 假设有 Json 工具类解析为 JsonNode
+        int code = rootNode.path("code").asInt();
+
+        if (code == 401) {
+            log.warn("预授权返回 code=401，第 {} 次尝试", attempt);
+            if (attempt < maxRetries) {
+                token = refreshToken(); // 自行实现：重新获取 token
+                continue;
+            } else {
+                throw new RuntimeException("预授权失败：token 多次失效");
+            }
+        }
+
+        log.info("预授权成功");
+        return req.getPassword();
+    }
+
+    throw new IllegalStateException("不应到达此处");
+}
