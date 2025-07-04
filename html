@@ -1,0 +1,143 @@
+<div id="createContainer" class="createContainer" style="display:none;">
+  <form class="form-horizontal">
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">优先级</label>
+      <div class="col-sm-11">
+        <input type="number" class="form-control" name="priority" placeholder="优先级">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">金额区间</label>
+      <div class="col-sm-11">
+        <input type="number" class="form-control" name="amountMin" placeholder="最小金额">
+        <input type="number" class="form-control" name="amountMax" placeholder="最大金额">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">信用等级</label>
+      <div class="col-sm-11">
+        <button type="button" class="btn btn-default credit-btn" data-value="信用良好">信用良好</button>
+        <button type="button" class="btn btn-default credit-btn" data-value="信用一般">信用一般</button>
+        <input type="hidden" name="creditLevel" id="creditLevel">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">星级</label>
+      <div class="col-sm-11">
+        <button type="button" class="btn btn-default star-btn" data-value="1星">1星</button>
+        <button type="button" class="btn btn-default star-btn" data-value="2星">2星</button>
+        <button type="button" class="btn btn-default star-btn" data-value="3星">3星</button>
+        <input type="hidden" name="starLevel" id="starLevel">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">成功笔数</label>
+      <div class="col-sm-11">
+        <input type="number" class="form-control" name="successCount" placeholder="成功笔数">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">平均金额</label>
+      <div class="col-sm-11">
+        <input type="number" class="form-control" name="averageAmount" placeholder="平均金额">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">IP</label>
+      <div class="col-sm-11">
+        <input type="number" class="form-control" name="ipDays" placeholder="天数">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">指派角色</label>
+      <div class="col-sm-11">
+        <input type="text" class="form-control" name="assignRoles" placeholder="例：仲裁,客服">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-1 control-label">指派用户</label>
+      <div class="col-sm-11">
+        <input type="text" class="form-control" name="assignUsers" placeholder="例：kone,dino">
+      </div>
+    </div>
+
+  </form>
+</div>
+
+
+var pageUtil = {
+  init: function () {
+    this.bindEvent();
+  },
+
+  bindEvent: function () {
+    $('.btn-create').on('click', function () {
+      pageUtil.create();
+    });
+
+    // 选择信用等级按钮
+    $('.credit-btn').on('click', function () {
+      $('.credit-btn').removeClass('btn-primary').addClass('btn-default');
+      $(this).removeClass('btn-default').addClass('btn-primary');
+      $('#creditLevel').val($(this).data('value'));
+    });
+
+    // 选择星级按钮
+    $('.star-btn').on('click', function () {
+      $('.star-btn').removeClass('btn-primary').addClass('btn-default');
+      $(this).removeClass('btn-default').addClass('btn-primary');
+      $('#starLevel').val($(this).data('value'));
+    });
+  },
+
+  create: function () {
+    _layer.open({
+      type: 1,
+      title: '创建指派规则',
+      area: ['850px', '600px'],
+      maxmin: true,
+      btn: ['提交', '取消'],
+      content: $('#createContainer'),
+      success: function (layero, index) {
+        $('#createContainer').find('input').val('');
+        $('.credit-btn, .star-btn').removeClass('btn-primary').addClass('btn-default');
+        $('#creditLevel, #starLevel').val('');
+      },
+      yes: function (index, layero) {
+        const inputValues = {};
+        $('#createContainer').find('input,textarea').each(function () {
+          const name = $(this).attr('name');
+          const value = $(this).val();
+          if (name) inputValues[name] = value;
+        });
+
+        $.ajax({
+          url: '/assignmentRule/create',
+          type: 'POST',
+          data: inputValues,
+          success: function (result) {
+            if (result.success) {
+              _layer.close(index);
+              $('#dataTable').bootstrapTable('refresh');
+            } else {
+              layerAlert.error(result.msg);
+            }
+          }
+        });
+      }
+    });
+  }
+};
+
+$(function () {
+  pageUtil.init();
+});
