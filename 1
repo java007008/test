@@ -1,0 +1,185 @@
+<div id="createContainer" style="display:none;">
+  <form class="form-horizontal">
+
+    <!-- 优先级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">优先级：</label>
+      <div class="col-sm-4">
+        <input type="number" class="form-control" name="priority">
+      </div>
+    </div>
+
+    <!-- 金额区间 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">金额区间：</label>
+      <div class="col-sm-2">
+        <input type="number" class="form-control" name="amountMin" placeholder="最小金额">
+      </div>
+      <div class="col-sm-2 text-center" style="line-height: 34px;">—</div>
+      <div class="col-sm-2">
+        <input type="number" class="form-control" name="amountMax" placeholder="最大金额">
+      </div>
+    </div>
+
+    <!-- 信用等级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">信用级：</label>
+      <div class="col-sm-4">
+        <button type="button" class="btn btn-default credit-btn" data-value="信用良好">信用良好</button>
+        <input type="hidden" name="creditLevel" id="creditLevel">
+      </div>
+    </div>
+
+    <!-- 星级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">星级：</label>
+      <div class="col-sm-4">
+        <button type="button" class="btn btn-default star-btn" data-value="五星">星级</button>
+        <input type="hidden" name="starLevel" id="starLevel">
+      </div>
+    </div>
+
+    <!-- 成功笔数 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">成功笔数：</label>
+      <div class="col-sm-4">
+        <input type="number" class="form-control" name="successCount">
+      </div>
+      <div class="col-sm-6" style="line-height: 34px;">
+        天内存款用户成功笔数小于等于
+      </div>
+    </div>
+
+    <!-- 平均金额 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">平均金额：</label>
+      <div class="col-sm-2">
+        <input type="number" class="form-control" name="averageAmountMin">
+      </div>
+      <div class="col-sm-6" style="line-height: 34px;">
+        天内存款成功（极速+传数）金额均值的
+        <input type="number" name="averageAmountPercent" style="width: 80px; display: inline-block;" class="form-control">%
+      </div>
+    </div>
+
+    <!-- IP -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">IP：</label>
+      <div class="col-sm-4">
+        <input type="number" class="form-control" name="ipDays">
+      </div>
+      <div class="col-sm-6" style="line-height: 34px;">
+        天内极速存款 IP 是否与订单 IP 相同
+      </div>
+    </div>
+
+    <!-- 指派角色 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">指派角色：</label>
+      <div class="col-sm-4">
+        <input type="text" class="form-control" name="assignRoles" placeholder="仲裁,客服">
+      </div>
+    </div>
+
+    <!-- 指派用户 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">指派用户：</label>
+      <div class="col-sm-4">
+        <input type="text" class="form-control" name="assignUsers" placeholder="kone,dino">
+      </div>
+    </div>
+
+  </form>
+</div>
+
+const pageUtil = {
+  mode: 'create', // 或 'edit'
+  editData: null,
+
+  init: function () {
+    this.bindEvent();
+  },
+
+  bindEvent: function () {
+    $('.credit-btn').on('click', function () {
+      $('.credit-btn').removeClass('btn-primary').addClass('btn-default');
+      $(this).addClass('btn-primary');
+      $('#creditLevel').val($(this).data('value'));
+    });
+
+    $('.star-btn').on('click', function () {
+      $('.star-btn').removeClass('btn-primary').addClass('btn-default');
+      $(this).addClass('btn-primary');
+      $('#starLevel').val($(this).data('value'));
+    });
+  },
+
+  openForm: function (mode, data = null) {
+    this.mode = mode;
+    this.editData = data;
+
+    // 初始化表单数据
+    const $container = $('#createContainer');
+    $container.find('input').val('');
+    $('.credit-btn, .star-btn').removeClass('btn-primary').addClass('btn-default');
+
+    if (mode === 'edit' && data) {
+      // 填充数据
+      for (const key in data) {
+        const $input = $container.find(`[name="${key}"]`);
+        if ($input.length) $input.val(data[key]);
+
+        // 按钮激活
+        if (key === 'creditLevel') {
+          $(`.credit-btn[data-value="${data[key]}"]`).addClass('btn-primary').removeClass('btn-default');
+        }
+        if (key === 'starLevel') {
+          $(`.star-btn[data-value="${data[key]}"]`).addClass('btn-primary').removeClass('btn-default');
+        }
+      }
+    }
+
+    _layer.open({
+      type: 1,
+      title: mode === 'edit' ? '编辑指派规则' : '创建指派规则',
+      area: ['900px', '600px'],
+      maxmin: true,
+      btn: ['提交', '取消'],
+      content: $container,
+      yes: function (index) {
+        const inputValues = {};
+        $container.find('input').each(function () {
+          const name = $(this).attr('name');
+          const value = $(this).val();
+          if (name) inputValues[name] = value;
+        });
+
+        const url = mode === 'edit' ? '/assignmentRule/update' : '/assignmentRule/create';
+        if (mode === 'edit' && data && data.id) {
+          inputValues.id = data.id;
+        }
+
+        $.post(url, inputValues, function (res) {
+          if (res.success) {
+            _layer.close(index);
+            $('#dataTable').bootstrapTable('refresh');
+          } else {
+            layerAlert.error(res.msg);
+          }
+        });
+      }
+    });
+  }
+};
+
+// 创建
+$('.btn-create').on('click', function () {
+  pageUtil.openForm('create');
+});
+
+// 编辑（data 为从表格中选中的行数据）
+$('.btn-edit').on('click', function () {
+  const rowData = getSelectedRowData(); // 你已有表格逻辑里获取的行
+  pageUtil.openForm('edit', rowData);
+});
+
