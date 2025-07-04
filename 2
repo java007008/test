@@ -1,0 +1,188 @@
+<!-- 引入依赖 -->
+<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/layer/3.5.1/layer.js"></script>
+
+<!-- 弹框容器 -->
+<div id="createContainer" style="display: none;">
+  <form class="form-horizontal" id="assignForm">
+
+    <!-- 优先级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">优先级：</label>
+      <div class="col-sm-10">
+        <input type="number" class="form-control" name="priority" style="width: 200px;">
+      </div>
+    </div>
+
+    <!-- 金额区间 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">金额区间：</label>
+      <div class="col-sm-10">
+        <div class="form-inline">
+          <input type="number" class="form-control" name="amountMin" style="width: 100px;" placeholder="最小金额">
+          <input type="number" class="form-control" name="amountMax" style="width: 100px;" placeholder="最大金额">
+        </div>
+        <div style="color: #999; margin-top: 5px;">最小金额 &lt; 订单金额区间 ≤ 最大金额</div>
+      </div>
+    </div>
+
+    <!-- 信用等级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">信用等级：</label>
+      <div class="col-sm-10">
+        <button type="button" class="btn btn-default credit-btn" data-value="信用良好">信用良好</button>
+        <input type="hidden" name="creditLevel" id="creditLevel">
+      </div>
+    </div>
+
+    <!-- 星级 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">星级：</label>
+      <div class="col-sm-10">
+        <button type="button" class="btn btn-default star-btn" data-value="五星">五星</button>
+        <input type="hidden" name="starLevel" id="starLevel">
+      </div>
+    </div>
+
+    <!-- 成功笔数 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">成功笔数：</label>
+      <div class="col-sm-10">
+        <input type="number" class="form-control" name="successCount" style="width: 100px;">
+        <div style="color: #999;">天内存款用户成功笔数小于等于</div>
+      </div>
+    </div>
+
+    <!-- 平均金额 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">平均金额：</label>
+      <div class="col-sm-10">
+        <div class="form-inline">
+          订单存款金额大于等于
+          <input type="number" class="form-control" name="averageAmountMin" style="width: 80px;">
+          天内存款成功（极速+传数）金额均值的
+          <input type="number" class="form-control" name="averageAmountPercent" style="width: 80px;">%
+        </div>
+      </div>
+    </div>
+
+    <!-- IP -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">IP：</label>
+      <div class="col-sm-10">
+        <input type="number" class="form-control" name="ipDays" style="width: 100px;">
+        <div style="color: #999;">天内极速存款 IP 是否与订单 IP 相同</div>
+      </div>
+    </div>
+
+    <!-- 指派角色 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">指派角色：</label>
+      <div class="col-sm-10">
+        <input type="text" class="form-control" name="assignRoles" style="width: 300px;" placeholder="例：仲裁,客服">
+      </div>
+    </div>
+
+    <!-- 指派用户 -->
+    <div class="form-group">
+      <label class="col-sm-2 control-label">指派用户：</label>
+      <div class="col-sm-10">
+        <input type="text" class="form-control" name="assignUsers" style="width: 300px;" placeholder="例：kone,dino">
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<!-- 弹窗 + 提交 JS -->
+<script>
+var pageUtil = {
+  mode: 'create',
+  data: null,
+
+  create: function (mode = 'create', rowData = null) {
+    this.mode = mode;
+    this.data = rowData;
+
+    layer.open({
+      type: 1,
+      title: mode === 'edit' ? '编辑指派规则' : '创建指派规则',
+      area: ['850px', '650px'],
+      btn: ['提交', '取消'],
+      content: $('#createContainer'),
+      success: function () {
+        $('#assignForm')[0].reset();
+        $('#creditLevel, #starLevel').val('');
+        $('.credit-btn, .star-btn').removeClass('btn-primary').addClass('btn-default');
+
+        if (mode === 'edit' && rowData) {
+          for (const key in rowData) {
+            $('[name="' + key + '"]').val(rowData[key]);
+            if (key === 'creditLevel') {
+              $('.credit-btn[data-value="' + rowData[key] + '"]').addClass('btn-primary');
+            }
+            if (key === 'starLevel') {
+              $('.star-btn[data-value="' + rowData[key] + '"]').addClass('btn-primary');
+            }
+          }
+        }
+      },
+      yes: function (index) {
+        const inputValues = {};
+        $('#assignForm').find('input,textarea').each(function () {
+          const name = $(this).attr('name');
+          const value = $(this).val();
+          if (name) inputValues[name] = value;
+        });
+
+        if (pageUtil.mode === 'edit' && pageUtil.data && pageUtil.data.id) {
+          inputValues.id = pageUtil.data.id;
+        }
+
+        const url = pageUtil.mode === 'edit' ? '/assignmentRule/update' : '/assignmentRule/create';
+        $.post(url, inputValues, function (res) {
+          if (res.success) {
+            layer.msg('操作成功');
+            layer.close(index);
+            $('#dataTable').bootstrapTable('refresh');
+          } else {
+            layer.alert(res.msg || '操作失败');
+          }
+        });
+      }
+    });
+  }
+};
+
+// 切换按钮样式和隐藏字段
+$(document).on('click', '.credit-btn', function () {
+  $('.credit-btn').removeClass('btn-primary').addClass('btn-default');
+  $(this).addClass('btn-primary');
+  $('#creditLevel').val($(this).data('value'));
+});
+$(document).on('click', '.star-btn', function () {
+  $('.star-btn').removeClass('btn-primary').addClass('btn-default');
+  $(this).addClass('btn-primary');
+  $('#starLevel').val($(this).data('value'));
+});
+</script>
+
+// 打开“创建”弹窗
+pageUtil.create('create');
+
+// 打开“编辑”弹窗（数据从表格中获取）
+pageUtil.create('edit', {
+  id: 1,
+  priority: 5,
+  amountMin: 100,
+  amountMax: 500,
+  creditLevel: '信用良好',
+  starLevel: '五星',
+  successCount: 2,
+  averageAmountMin: 7,
+  averageAmountPercent: 80,
+  ipDays: 3,
+  assignRoles: '仲裁,客服',
+  assignUsers: 'kone,dino'
+});
