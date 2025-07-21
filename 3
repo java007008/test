@@ -1,0 +1,181 @@
+<!-- 编辑仲裁跟进订单 弹框 -->
+<div id="editDialog" style="display: none; padding: 20px; width: 800px;">
+    <form id="editForm" class="form-horizontal">
+        <div class="form-group">
+            <label class="col-sm-3 control-label">交易单号：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="tradeNo">123456</p>
+            </div>
+            <label class="col-sm-3 control-label">订单状态：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="orderStatus">交易失败</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">交易时间：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="tradeTime">2025-10-10 23:59:00</p>
+            </div>
+            <label class="col-sm-3 control-label">完成时间：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="finishTime">2025-10-10 23:59:00</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">存款商户：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="depositMerchant">A02</p>
+            </div>
+            <label class="col-sm-3 control-label">存款登录名：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="depositUser">dino</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">取款商户：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="withdrawMerchant">A01</p>
+            </div>
+            <label class="col-sm-3 control-label">取款登录名：</label>
+            <div class="col-sm-3">
+                <p class="form-control-static" id="withdrawUser">dino1</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">处理进度：</label>
+            <div class="col-sm-3">
+                <select class="form-control" name="progress" id="progressSelect"></select>
+            </div>
+            <label class="col-sm-3 control-label">跟进类型：</label>
+            <div class="col-sm-3">
+                <select class="form-control" name="followType" id="followTypeSelect"></select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">处理方式：</label>
+            <div class="col-sm-3">
+                <select class="form-control" name="handleType" id="handleTypeSelect"></select>
+            </div>
+            <label class="col-sm-3 control-label">备注：</label>
+            <div class="col-sm-6">
+                <textarea class="form-control" name="remark" rows="3" id="remarkText"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">附件：</label>
+            <div class="col-sm-9">
+                <input type="file" class="form-control" id="attachmentUpload">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">历史备注：</label>
+            <div class="col-sm-9">
+                <table class="table table-bordered" id="historyRemarkTable">
+                    <thead>
+                        <tr>
+                            <th>备注</th>
+                            <th>创建时间</th>
+                            <th>创建人</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 动态填充 -->
+                    </tbody>
+                </table>
+                <nav>
+                    <ul class="pagination pagination-sm" id="remarkPagination"></ul>
+                </nav>
+            </div>
+        </div>
+
+        <div class="form-group text-right">
+            <button type="button" class="btn btn-default" onclick="closeDialog()">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveData()">保存</button>
+            <button type="button" class="btn btn-success" onclick="completeData()">完成</button>
+        </div>
+    </form>
+</div>
+
+
+function openEditDialog(data) {
+    // 填充数据
+    $('#tradeNo').text(data.tradeNo);
+    $('#orderStatus').text(data.status);
+    $('#tradeTime').text(data.tradeTime);
+    $('#finishTime').text(data.finishTime);
+    $('#depositMerchant').text(data.depositMerchant);
+    $('#depositUser').text(data.depositUser);
+    $('#withdrawMerchant').text(data.withdrawMerchant);
+    $('#withdrawUser').text(data.withdrawUser);
+
+    // 初始化下拉框 (示例)
+    initSelectOptions();
+
+    // 初始化备注分页
+    renderRemarks(data.remarks || []);
+
+    // 打开弹窗
+    layer.open({
+        type: 1,
+        title: '编辑仲裁跟进订单',
+        area: ['850px', '650px'],
+        content: $('#editDialog')
+    });
+}
+
+function renderRemarks(remarks) {
+    const pageSize = 5;
+    let currentPage = 1;
+
+    function renderPage(page) {
+        const start = (page - 1) * pageSize;
+        const pageData = remarks.slice(start, start + pageSize);
+        const tbody = $('#historyRemarkTable tbody');
+        tbody.empty();
+        pageData.forEach(item => {
+            tbody.append(`<tr><td>${item.text}</td><td>${item.time}</td><td>${item.creator}</td></tr>`);
+        });
+
+        // 渲染分页器
+        const totalPages = Math.ceil(remarks.length / pageSize);
+        const pagination = $('#remarkPagination');
+        pagination.empty();
+        for (let i = 1; i <= totalPages; i++) {
+            pagination.append(`<li class="${i === page ? 'active' : ''}"><a href="#">${i}</a></li>`);
+        }
+
+        pagination.find('a').click(function () {
+            const page = parseInt($(this).text());
+            renderPage(page);
+        });
+    }
+
+    renderPage(currentPage);
+}
+
+function initSelectOptions() {
+    $('#progressSelect').html('<option>处理中</option><option>已完成</option>');
+    $('#followTypeSelect').html('<option>客服</option><option>风控</option>');
+    $('#handleTypeSelect').html('<option>人工</option><option>自动</option>');
+}
+
+function closeDialog() {
+    layer.closeAll();
+}
+
+function saveData() {
+    // 示例保存
+    layer.msg('保存成功');
+}
+
+function completeData() {
+    // 示例完成
+    layer.msg('处理完成');
+}
